@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ShadowSea</title>
+
+
+    <link rel='stylesheet prefetch' href='https://rawgit.com/jcubic/jquery.terminal/devel/css/jquery.terminal-src.css?v=3'>
+
+    <style>
+        body {
+            margin: 0;
+            background: black;
+        }
+        #term {
+            height: 100vh;
+            --background: #031e11;
+            --size: 1.5;
+        }
+        /* to see yourself like in a mirror */
+        .self {
+            transform: scale(-1, 1);
+        }
+        /* flicker animation taken from http://goonhub.com/secret */
+        #term::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.2);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+            animation: flicker 0.12s infinite;
+        }
+        @keyframes flicker {
+        0% {
+            opacity: 0.552;
+        }
+        5% {
+            opacity: 0.48287;
+        }
+        10% {
+            opacity: 0.59134;
+        }
+        15.0% {
+            opacity: 0.79543;
+        }
+        20% {
+            opacity: 0.75134;
+        }
+        25% {
+            opacity: 0.1956;
+        }
+        30.0% {
+            opacity: 0.90687;
+        }
+        35% {
+            opacity: 0.122;
+        }
+        40% {
+            opacity: 0.62254;
+        }
+        45% {
+            opacity: 0.56977;
+        }
+        50% {
+            opacity: 0.9925;
+        }
+        55.0% {
+            opacity: 0.55487;
+        }
+        60.0% {
+            opacity: 0.16607;
+        }
+        65% {
+            opacity: 0.12353;
+        }
+        70% {
+            opacity: 0.2214;
+        }
+        75% {
+            opacity: 0.67908;
+        }
+        80% {
+            opacity: 0.97163;
+        }
+        85.0% {
+            opacity: 0.1275;
+        }
+        90% {
+            opacity: 0.37186;
+        }
+        95% {
+            opacity: 0.24475;
+        }
+        100% {
+            opacity: 0.37221;
+        }
+        }
+        /*
+        * reference: https://developer.mozilla.org/en-US/docs/Web/CSS/:focus-within
+        */
+        .cmd:focus-within .prompt {
+            color: red;
+        }
+        /* glow */
+        .terminal {
+            text-shadow: 0 0.2rem 1rem #0c7b46;
+        }
+        /* based on
+        https://blog.carbonfive.com/2015/01/07/vintage-terminal-effect-in-css3/
+        */
+        .scanlines {
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,.2) 70%,
+                rgba(0,0,0,.6)
+            );
+            background-size: 100% .3rem;
+            position: fixed;
+            pointer-events: none;
+        }
+        .scanlines:before {
+        position: absolute;
+        top: 0px;
+        width: 100%;
+        height: 5px;
+        background: #fff;
+        background: linear-gradient(to bottom,
+            rgba(255,0,0,0) 0%,
+            rgba(255,250,250,1) 50%,
+            rgba(255,255,255,0.98) 51%,
+            rgba(255,0,0,0) 100%
+        ); /* W3C */
+        opacity: .1;
+        }
+        .scanlines:after {
+        box-shadow: 0 2px 6px rgba(25,25,25,0.2),
+            inset 0 1px rgba(50,50,50,0.1),
+            inset 0 3px rgba(50,50,50,0.05),
+            inset 0 3px 8px rgba(64,64,64,0.05),
+            inset 0 -5px 10px rgba(25,25,25,0.1);
+        }
+
+        #term:focus-within + .scanlines:before {
+        content: '';
+        animation: vline calc(var(--time, 2) * 1s) linear infinite;
+        }
+        /*
+        * MS Edge don't support focus-within and css vars
+        * inside pseudo selector
+        */
+        @supports (-ms-ime-align:auto) {
+            .scanlines:before {
+                content: '';
+                animation: vline 3s linear infinite;
+            }
+        }
+        @keyframes vline {
+        to { transform: translate(0, 100vh)}
+        }
+        /* turn off animation */
+        .tv {
+            height: 100vh;
+            position: relative;
+        }
+        @keyframes opacity {
+            to { opacity: 1; }
+        }
+        @keyframes size {
+            50% {
+                transform: scaleX(calc(1 / var(--width)));
+                opacity: 1;
+            }
+            98% {
+                transform: scaleX(calc(1 / var(--width))) scaleY(calc(1 / var(--height)));
+                opacity: 1;
+            }
+            100% {
+                transform: scaleX(calc(1 / var(--width))) scaleY(calc(1 / var(--height)));
+                opacity: 0;
+            }
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <div class="tv">
+        <div id="term"></div>
+        <div class="scanlines"></div>
+    </div>
+
+    <script src='https://code.jquery.com/jquery-3.1.1.min.js'></script>
+    <script src='https://rawgit.com/jcubic/jquery.terminal/master/js/jquery.terminal.js'></script>
+    <script src='https://rawgit.com/jcubic/jquery.terminal/master/js/jquery.mousewheel-min.js'></script>
+    <script src='https://rawgit.com/inexorabletash/polyfill/master/keyboard.js'></script>
+    <script src='https://unpkg.com/treeify@1.0.1/treeify.js'></script>
+
+    <script>
+
+        var header = `   _____ __              __              _____
+  / ___// /_  ____ _____/ /___ _      __/ ___/___  ____ _
+  \\__ \\/ __ \\/ __ \`/ __  / __ \\ | /| / /\\__ \\/ _ \\/ __ \`/
+ ___/ / / / / /_/ / /_/ / /_/ / |/ |/ /___/ /  __/ /_/ /
+/____/_/ /_/\\__,_/\\__,_/\\____/|__/|__//____/\\___/\\__,_/
+Copyright (c) 2071-2072
+`
+
+        var scanlines = $('.scanlines');
+        var tv = $('.tv');
+
+        thread_id = null;
+        login_creds = null;
+
+        function login(user, pass, callback) {
+            term.push(function (user) {
+                term.set_mask('*').push(function (pass) {
+                    login_cred = user + '$' + pass;
+
+                    $.post('/auth/login/', { token: login_cred }).then(function (response) {
+                        if (response.success) {
+                            term.echo('logged in as ' + user)
+                            login_creds = login_cred;
+                        } else {
+                            term.echo('login failed')
+                        }
+                    });
+
+                    term.pop(undefined, true).pop(undefined, true);
+                }, {
+                    prompt: 'password: ',
+                    name: 'password'
+                });
+            }, {
+                prompt: 'username: ',
+                name: 'username'
+            });
+        }
+
+        function register() {
+            term.push(function (user) {
+                term.set_mask('*').push(function (pass) {
+                    login_cred = user + '$' + pass;
+
+                    term.pause();
+
+                    $.post('/auth/register/', { token: login_cred })
+                        .then(function (response) {
+                            term.echo('user created')
+                        })
+                        .fail(function(response) {
+                            term.error(response.responseJSON.error || 'an error occurred')
+                        })
+                        .always(function (response) {
+                            term.resume()
+                            term.pop(undefined, true).pop(undefined, true);
+                        })
+
+                }, {
+                    prompt: 'password: ',
+                    name: 'password'
+                });
+            }, {
+                prompt: 'username: ',
+                name: 'username'
+            });
+        }
+
+        function status() {
+            $.get('/status/', {})
+                .done(function (response) {
+                    tree(response);
+                })
+        }
+
+        function post_thread() {
+            term.echo('posting new thread...')
+
+            term.push(function (title) {
+                term.push(function (content) {
+                    term.pause()
+
+                    $.post('/thread/post/', {
+                        title: title,
+                        content: content
+                    })
+                    .done(function(response) {
+                        term.echo('created thread ' + response.thread_id)
+                    })
+                    .fail(function(response) {
+                        term.error('an error occurred')
+                    })
+                    .always(function(response) {
+                        term.resume()
+                        term.pop(undefined, true).pop(undefined, true);
+                    })
+                }, {
+                    prompt: 'content: ',
+                    name: 'content'
+                });
+            }, {
+                prompt: 'title: ',
+                name: 'title'
+            });
+        }
+
+        function post_reply() {
+            term.echo('posting new reply...')
+
+            term.push(function (content) {
+                term.pause();
+                $.post('/thread/' + thread_id + '/post/', {
+                    content: content
+                })
+                    .done(function (response) {
+                        term.echo('created post in thread ' + thread_id)
+                    })
+                    .fail(function (response) {
+                        term.error('an error occurred')
+                    })
+                    .always(function (response) {
+                        term.resume();
+                        term.pop(undefined, true)
+                    })
+
+            }, {
+                prompt: 'content: ',
+                name: 'content'
+            });
+        }
+
+        function list_threads() {
+            term.pause();
+            $.get('/thread/list/', {})
+                .done(function (response) {
+                    term.echo("  id u          author title                                   posts                date")
+                    term.echo("----------------------------------------------------------------------------------------")
+                    for (r in response) {
+                        term.echo(
+                            response[r].id.toString().padStart(4, ' ') +
+                            (response[r].unread ? ' *' : '  ') +
+                            response[r].poster.toString().padStart(16, ' ') + ' ' +
+                            response[r].name.toString().padEnd(39, ' ') +
+                            response[r].posts.toString().padStart(6, ' ') +
+                            response[r].date.toString().padStart(20, ' ')
+                        );
+                    }
+                })
+                .always(function (response) {
+                    term.resume();
+                })
+        }
+
+        function list_posts() {
+            term.pause();
+            $.get('/thread/' + thread_id + '/', {})
+                .done(function (response) {
+                    for (r in response) {
+                        term.echo(response[r].poster.toString().padEnd(16, ' ') + response[r].date.toString());
+                        term.echo(response[r].text + '\n');
+                    }
+                })
+                .always(function (response) {
+                    term.resume();
+                })
+                .fail(function(response) {
+                    term.error('an error occurred')
+                })
+        }
+
+        function get_prompt(cb) {
+            cb(thread_id == null ? "shadow> " : "shadow " + thread_id + "> ")
+        }
+
+        function interpret(command, term) {
+            c = $.terminal.parse_command(command);
+
+            console.log(c);
+
+            if (c.name == '') {
+                term.echo('')
+            }
+            else if (c.name == 'list') {
+                if (thread_id == null) {
+                    list_threads()
+                } else {
+                    list_posts()
+                }
+            }
+            else if (c.name == 'login') {
+                login();
+            }
+            else if (c.name == 'register') {
+                register();
+            }
+            else if (c.name == 'status') {
+                status();
+            }
+            else if (c.name == 'back') {
+                if (thread_id == null) {
+                    term.error("you are already at the root");
+                }
+                thread_id = null;
+            }
+            else if (c.name == 'post') {
+                if (login_creds == null && false) {
+                    term.error('you must be logged in to post')
+                } else if (thread_id == null) {
+                    post_thread();
+                } else {
+                    post_reply();
+                }
+            }
+            else if (c.name == 'thread') {
+                if (c.args.length != 1) {
+                    term.error('you must provide a thread ID');
+                    return;
+                }
+
+                thread_id = c.args[0];
+                term.echo('selected thread ' + thread_id);
+            }
+            else {
+                term.error('unknown command');
+            }
+        }
+
+        var term = $('#term').terminal(interpret, {
+            memory: true,
+            onResize: set_size,
+            greetings: header,
+            exit: false,
+            onInit: function () {
+                set_size();
+                this.echo('Type [[b;#fff;]list] to view threads or [[b;#fff;]thread <id>] to select one or [[b;#fff;]post].');
+                this.echo('Similar commands navigate through threads.');
+                this.echo('Type [[b;#fff;]back] to go back.\n');
+                this.echo('To create an account, type [[b;#fff;]register]. If you have one, [[b;#fff;]login].\n');
+            },
+            prompt: get_prompt,
+            numChars: 100
+        });
+
+        function set_size() {
+            var height = $(window).height();
+            var width = $(window).width()
+            var time = (height * 2) / 170;
+            scanlines[0].style.setProperty("--time", time);
+            tv[0].style.setProperty("--width", width);
+            tv[0].style.setProperty("--height", height);
+        }
+
+        function tree(obj) {
+            term.echo(treeify.asTree(obj, true, true));
+        }
+
+    </script>
+</body>
+
+</html>
