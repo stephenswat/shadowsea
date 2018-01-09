@@ -346,14 +346,14 @@ Copyright (c) 2071-2072
             term.pause();
             $.get('/thread/list/', {})
                 .done(function (response) {
-                    term.echo("  id u          author title                                   posts                date")
-                    term.echo("----------------------------------------------------------------------------------------")
+                    term.echo("  id u                author title                                   posts                date")
+                    term.echo("----------------------------------------------------------------------------------------------")
                     for (r in response) {
                         term.echo(
                             response[r].id.toString().padStart(4, ' ') +
                             (response[r].unread ? ' *' : '  ') +
-                            response[r].poster.toString().padStart(16, ' ') + ' ' +
-                            response[r].name.toString().padEnd(39, ' ') +
+                            response[r].poster.toString().padStart(22, ' ') + ' ' +
+                            response[r].name.substring(0, 38).toString().padEnd(39, ' ') +
                             response[r].posts.toString().padStart(6, ' ') +
                             response[r].date.toString().padStart(20, ' ')
                         );
