@@ -438,18 +438,59 @@ Copyright (c) 2071-2072
             }
         }
 
+        function on_init() {
+            set_size();
+            term = this;
+
+            term.pause();
+
+            setTimeout(function () {
+                term.echo('Establishing secure connection...');
+            }, 0);
+            setTimeout(function () {
+                term.echo('Diffie-Hellman key exchange complete');
+            }, 850);
+            setTimeout(function () {
+                term.echo('Attempting to establish bidirectional AES channel...');
+            }, 1100);
+            setTimeout(function () {
+                term.error('Failed to establish symmetrical AES channel (not supported by your comlink)');
+            }, 1650);
+            setTimeout(function () {
+                term.echo('Attempting to establish bidirectional Kuznyechik channel...');
+            }, 1700);
+            setTimeout(function () {
+                term.echo('Symmetrical Kuznyechik-encrypted channel (8192 bit) established');
+            }, 2250);
+            setTimeout(function () {
+                term.echo('Rerouting of network traffic over randomized meshnet nodes complete\n');
+            }, 2525);
+
+            setTimeout(function () {
+                term.echo('Your ShadowSea software is up to date (v0.27.4A)');
+                uuid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                term.echo('Generated unique session ID ' + uuid);
+            }, 2750);
+
+            setTimeout(function () {
+                term.echo('\n[[;#000;#fff]Welcome to ShadowSea]');
+            }, 2850);
+
+            setTimeout(function () {
+                term.echo('\nType [[b;#fff;]list] to view threads or [[b;#fff;]thread <id>] to select one or [[b;#fff;]post].');
+                term.echo('Similar commands navigate through threads.');
+                term.echo('Type [[b;#fff;]back] to go back.\n');
+                term.echo('To create an account, type [[b;#fff;]register]. If you have one, [[b;#fff;]login].\n');
+                term.resume();
+            }, 4000);
+        }
+
         var term = $('#term').terminal(interpret, {
             memory: true,
             onResize: set_size,
             greetings: header,
             exit: false,
-            onInit: function () {
-                set_size();
-                this.echo('Type [[b;#fff;]list] to view threads or [[b;#fff;]thread <id>] to select one or [[b;#fff;]post].');
-                this.echo('Similar commands navigate through threads.');
-                this.echo('Type [[b;#fff;]back] to go back.\n');
-                this.echo('To create an account, type [[b;#fff;]register]. If you have one, [[b;#fff;]login].\n');
-            },
+            onInit: on_init,
             prompt: get_prompt,
             numChars: 100
         });
