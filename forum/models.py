@@ -16,7 +16,7 @@ class Thread(models.Model):
 
 
 def get_next_post_datetime():
-    return Post.objects.all().aggregate(Max('created'))['created__max'] + datetime.timedelta(seconds=random.randint(10, 9000))
+    return Post.objects.all().aggregate(Max('created'))['created__max'] + datetime.timedelta(seconds=random.randint(10, 1500))
 
 
 class Post(models.Model):
